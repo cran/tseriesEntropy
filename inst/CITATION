@@ -1,0 +1,19 @@
+citHeader("To cite the 'tseriesEntropy' package in publications use:")
+
+#if(!exists("meta") || is.null(meta)) meta <- packageDescription("tseriesEntropy")
+#year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date)
+#vers <- paste("R package version", meta$Version)
+
+    bibentry(
+         bibtype = "Manual",
+         title = "tseriesentropy: entropy based analysis and tests for time series",
+         author = c(
+           person("Simone", "Giannerini", role = c("aut","cre"), email = "simone.giannerini@unibo.it")
+         ),
+         year = "2015",
+         note = "R package version 0.5-12",
+         url = "http://CRAN.R-project.org/package=tseriesEntropy",
+         key = "tseriesEntropy-package",
+         textVersion = "Giannerini S. (2015) tseriesEntropy: entropy based analysis and tests for time series. R package version 0.5-12, <URL: http://CRAN.R-project.org/package=tseriesEntropy>."
+    )
+

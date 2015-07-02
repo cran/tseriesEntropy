@@ -1,0 +1,15 @@
+Package: tseriesEntropy
+Title: Entropy Based Analysis and Tests for Time Series
+Date: 2015-07-02
+Version: 0.5-12
+Author: Simone Giannerini
+Depends: R (>= 2.14.0)
+Imports: cubature, methods, parallel, stats, graphics
+Suggests:
+Description: Implements an Entropy measure of dependence based on the Bhattacharya-Hellinger-Matusita distance. Can be used as a (nonlinear) autocorrelation/crosscorrelation function for continuous and categorical time series. The package includes tests for serial dependence and nonlinearity based on it. Some routines have a parallel version that can be used in a multicore/cluster environment. The package makes use of S4 classes.
+Maintainer: Simone Giannerini <simone.giannerini@unibo.it>
+License: GPL (>= 2)
+NeedsCompilation: yes
+Packaged: 2015-07-03 15:19:31 UTC; Simone
+Repository: CRAN
+Date/Publication: 2015-07-04 09:52:03

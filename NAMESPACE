@@ -1,0 +1,27 @@
+useDynLib(tseriesEntropy)
+import(methods,cubature,parallel,stats,graphics)
+##importFrom(methods, show)
+export(
+Srho
+,Srho.test
+,Srho.ts
+,Srho.test.ts
+,surrogate.SA
+,Trho.test.SA.p
+,surrogate.AR
+,surrogate.ARs
+,Srho.test.AR
+,Srho.test.AR.p
+,Trho.test.AR.p
+,Trho.test.AR
+,Trho.test.SA
+)
+exportClasses(
+Srho
+,Srho.test
+,Srho.ts
+)
+exportMethods(
+plot
+,show
+)
