@@ -34,7 +34,7 @@ A list with the following elements:
 }
 \references{
 Giannerini S., Maasoumi E., Bee Dagum E., (2015), Entropy testing
-for nonlinear serial dependence in time series, \emph{Biometrika}, forthcoming
+for nonlinear serial dependence in time series, \emph{Biometrika}, \bold{102(3)}, 661--675
 \url{http://doi.org/10.1093/biomet/asv007}.
 
 Schreiber T., Schmitz A.,(2000) Surrogate time series. \emph{Physica D}, \bold{142(3-4)}, 346--382.

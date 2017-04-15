@@ -1,11 +1,12 @@
-useDynLib(tseriesEntropy)
-import(methods,cubature,parallel,stats,graphics)
+useDynLib(tseriesEntropy, .registration = TRUE, .fixes = "C_")
+import(methods,cubature,parallel,stats,graphics,ks)
 ##importFrom(methods, show)
 export(
 Srho
 ,Srho.test
 ,Srho.ts
 ,Srho.test.ts
+,Srho.test.ts.p
 ,surrogate.SA
 ,Trho.test.SA.p
 ,surrogate.AR

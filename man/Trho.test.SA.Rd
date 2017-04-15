@@ -8,9 +8,9 @@ Simulated Annealing. The statistics Trho is based on the quadratic divergence be
  and the parametric estimator under the null hypothesis of a linear Gaussian process.}
  \usage{
 Trho.test.SA(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
- bw = c("reference","mlcv", "lscv"), method =c("integral","summation"),
- maxpts=0, tol=1e-03, nlag=trunc(length(x)/4), Te=0.0015,
- RT=0.9, eps.SA=0.01, nsuccmax=30, nmax=300, che=100000)
+ bw = c("reference","mlcv", "lscv", "scv", "pi"),
+ method =c("integral","summation"), maxpts=0, tol=1e-03, nlag=trunc(length(x)/4),
+ Te=0.0015, RT=0.9, eps.SA=0.01, nsuccmax=30, nmax=300, che=100000)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -52,7 +52,7 @@ algorithm, there should not be the need to change them.
 }
 \references{
 Giannerini S., Maasoumi E., Bee Dagum E., (2015), Entropy testing
-for nonlinear serial dependence in time series, \emph{Biometrika}, forthcoming
+for nonlinear serial dependence in time series, \emph{Biometrika}, \bold{102(3)}, 661--675
 \url{http://doi.org/10.1093/biomet/asv007}.
 }
 
@@ -61,7 +61,7 @@ for nonlinear serial dependence in time series, \emph{Biometrika}, forthcoming
  \seealso{See Also \code{\link{Srho.ts}}, \code{\link{surrogate.SA}}, \code{\link{Trho.test.AR}}. See \code{\link{Trho.test.SA.p}} for the parallel version.}
 \examples{
 \dontrun{
-set.seed(1345)
+set.seed(13)
 x      <- arima.sim(n=120, model = list(ar=0.8));
 result <- Trho.test.SA(x, lag.max = 5,  B = 10, bw='reference', method='integral')
 }}

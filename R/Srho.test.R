@@ -108,7 +108,7 @@ Srho.test.uni <- function(x,lag.max,B=1000,stationary=TRUE,plot=TRUE,quant,nor=F
     n     <- length(x);
     M     <- matrix(0,lag.max,B);
     S.b   <- .Fortran("ssunib",as.integer(x),as.integer(n),as.integer(lag.max),B=as.integer(B), S=as.double(rep(0,lag.max)),
-    M=matrix(as.double(0),lag.max,B),as.integer(stationary),as.integer(nor),PACKAGE="tseriesEntropy")
+    M=matrix(as.double(0),lag.max,B),as.integer(stationary),as.integer(nor))
 
     S.x   <- S.b$S;
     M     <- S.b$M;
@@ -168,7 +168,7 @@ Srho.test.biv <- function(x,y,lag.max,B=1000,stationary=TRUE,plot=TRUE,quant,nor
 
     M   <- matrix(0,(2*lag.max+1),B);storage.mode(M)<-"double"
     S.b <- .Fortran("ssbivb",as.integer(x),as.integer(y),as.integer(n),as.integer(lag.max),B=as.integer(B),
-        S=double((2*lag.max+1)),M=M,as.integer(stationary),as.integer(nor),PACKAGE="tseriesEntropy");
+        S=double((2*lag.max+1)),M=M,as.integer(stationary),as.integer(nor));
     #SUBROUTINE SSBIVB(X,Y,N,nlag,B,S,M,STAT,nor)
     S.x   <- S.b$S;
     M     <- S.b$M;

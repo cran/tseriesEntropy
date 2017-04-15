@@ -9,8 +9,8 @@ parallel.}
 
 \usage{
 Srho.test.AR.p(x, y, lag.max = 10, B = 100, plot = TRUE, quant = c(0.95, 0.99),
- bw = c("reference", "mlcv", "lscv"), method = c("integral", "summation"),
- maxpts = 0, tol = 0.001, order.max = 10,
+ bw = c("reference", "mlcv", "lscv", "scv", "pi"),
+ method = c("integral", "summation"), maxpts = 0, tol = 0.001, order.max = 10,
  fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),  smoothed = TRUE,
  nslaves=detectCores())
 }
@@ -53,16 +53,19 @@ The routine requires the package parallel to spawn multiple slaves.
 }
 \references{
 Giannerini S., Maasoumi E., Bee Dagum E., (2015), Entropy testing
-for nonlinear serial dependence in time series, \emph{Biometrika}, forthcoming
-.
+for nonlinear serial dependence in time series, \emph{Biometrika}, \bold{102(3)}, 661--675
+\url{http://doi.org/10.1093/biomet/asv007}.
 }
  \author{Simone Giannerini<simone.giannerini@unibo.it>}
 \seealso{See Also \code{\link{Srho.ts}}, \code{\link{surrogate.AR}}, \code{\link{surrogate.ARs}}, \code{\link{Srho.test.AR}}.}
 \examples{
 \dontrun{
+## ************************************************************
+## WARNING: computationally intensive, increase B with caution
+## ************************************************************
 
-# modifiy nslaves to match the number of available cores
-set.seed(1345)
+# modify nslaves to match the number of available cores
+set.seed(13)
 x      <- arima.sim(n=120, model = list(ar=0.8));
 result <- Srho.test.AR.p(x, lag.max = 5,  B = 100, bw='reference', method='integral', nslaves=2)
 

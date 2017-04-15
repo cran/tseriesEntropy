@@ -1,16 +1,17 @@
-\name{Srho.test.ts}
-\alias{Srho.test.ts}
-
-\title{Entropy Tests Of Serial And Cross Dependence For Time Series}
+\name{Srho.test.ts.p}
+\alias{Srho.test.ts.p}
+\title{Entropy Tests Of Serial And Cross Dependence For Time Series - Parallel Version}
 
 \description{Entropy test of serial and cross dependence for numeric time series (continuous state space) based on
 \code{\link{Srho.ts}}. The distribution under the null hypothesis of independence is obtained by means of bootstrap/permutations methods
-(see \code{ci.type}).}
+(see \code{ci.type}). Parallel version -- requires parallel.}
+
  \usage{
-Srho.test.ts(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
+Srho.test.ts.p(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
  bw = c("reference","mlcv", "lscv", "scv", "pi"), method =c("integral","summation"),
- maxpts=0, tol=1e-03, ci.type = c("mbb","perm"))
+ maxpts=0, tol=1e-03, ci.type = c("mbb","perm"), nslaves=detectCores())
 }
+%- maybe also 'usage' for other objects documented here.
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{x, y}{univariate numeric time series object or numeric vectors (\code{y} is missing in the univariate case).}
@@ -27,20 +28,21 @@ Srho.test.ts(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
   \item{ci.type}{confidence interval type. determines how the distribution under the null hypothesis is obtained. \code{mbb} uses a moving block bootstrap
   with block length equal to \code{lag.max}. The option "perm" uses permutation methods (each resampled series is a random permutation of the original series).
   The option \code{mbb} makes sense only in the bivariate case for which is the default.}
+  \item{nslaves}{number of slaves/processes to be used in parallel environments.}
 }
+
  \details{
 \describe{
 \item{Univariate version: test for serial dependence}{\preformatted{Srho.test.ts(x, lag.max = 10,
-B = 100, plot = TRUE, quant = c(0.95, 0.99),
-bw = c("reference","mlcv", "lscv", "scv", "pi"), method =c("integral","summation"),
- maxpts=0, tol=1e-03, ci.type = c("perm"))}}
+B = 100, plot = TRUE, quant = c(0.95, 0.99), 
+bw = c("reference", "mlcv", "lscv", "scv", "pi"), method =c("integral","summation"), 
+maxpts=0, tol=1e-03, ci.type = c("perm"), nslaves=detectCores())}}
 
 \item{Bivariate version: test for cross dependence}{\preformatted{Srho.test.ts(x, y, lag.max = 10,
-B = 100, plot = TRUE, quant = c(0.95, 0.99),
-bw = c("reference", "mlcv", "lscv", "scv", "pi"), method =c("integral","summation"),
- maxpts=0, tol=1e-03, ci.type = c("mbb","perm"))}}
+B = 100, plot = TRUE, quant = c(0.95, 0.99), 
+bw = c("reference", "mlcv", "lscv", "scv", "pi"), method =c("integral","summation"), 
+maxpts=0, tol=1e-03, ci.type = c("mbb","perm"), nslaves=detectCores())}}
 }
-
 For each lag from 1 to \code{lag.max} (serial dependence) or from \code{-lag.max} to \code{lag.max} (cross dependence) \code{Srho.test.ts} computes
  a test for serial/cross dependence for time series based on \code{\link{Srho.ts}}. The distribution under the null hypothesis of independence
  is obtained through either permutation or bootstrap methods. If the option \code{mbb} is chosen (bivariate case only)  the resampled series
@@ -67,19 +69,18 @@ Granger C. W. J., Maasoumi E., Racine J., (2004) A dependence metric for possibl
 Maasoumi E., (1993) A compendium to information theory in economics and econometrics.
 \emph{Econometric Reviews}, \bold{12(2)}, 137--181.
 }
-
 \author{Simone Giannerini<simone.giannerini@unibo.it>}
-\seealso{See Also \code{\link{Srho.ts}}. See \code{\link{Srho.test.AR.p}}
-for the parallel version. The function \code{\link{Srho.test}} implements the
-same test for integer/categorical data. For a test for nonlinear serial dependence
-see \code{\link{Srho.test.AR}}, \code{\link{Trho.test.AR}}, \code{\link{Trho.test.SA}}}
+\seealso{See Also \code{\link{Srho.test.ts}} and \code{\link{Srho.ts}}. 
+The function \code{\link{Srho.test}} implements the same test for integer/categorical data. 
+For a test for nonlinear serial dependence see \code{\link{Srho.test.AR}}, 
+\code{\link{Trho.test.AR}}, \code{\link{Trho.test.SA}}, together with their parallel 
+versions: \code{\link{Srho.test.AR.p}}, \code{\link{Trho.test.AR}}, \code{\link{Trho.test.SA}}.}
+
 \examples{
 \dontrun{
-## ***********************************************************
+## ************************************************************
 ## WARNING: computationally intensive, increase B with caution
-##          and use the parallel version
-## ***********************************************************
-
+## ************************************************************
 set.seed(13)
 n      <- 120
 w      <- rnorm(n)
@@ -87,17 +88,14 @@ x      <- arima.sim(n, model = list(ar=0.8));
 y      <- arima.sim(n, model = list(ar=0.8));
 z      <- lag(x,-1) + rnorm(n,sd=2) # dependence at lag 1
 # UNIVARIATE VERSION
-res1 <- Srho.test.ts(w, lag.max = 5,  B = 10, bw='reference', method='integral'
-    ,ci.type="perm") # independence
-res2 <- Srho.test.ts(x, lag.max = 5,  B = 10, bw='reference', method='integral'
-    ,ci.type="perm") # dependence
+res1 <- Srho.test.ts.p(w, lag.max = 5,  B = 40, ci.type="perm") # independence
+res2 <- Srho.test.ts.p(x, lag.max = 5,  B = 40, ci.type="perm") # dependence
 
 # BIVARIATE VERSION
-res3 <- Srho.test.ts(x, y, lag.max = 5,  B = 10, bw='reference', method='integral'
-,ci.type="mbb") # independence (try at least B = 100 for meaningful results)
-res4 <- Srho.test.ts(x, z, lag.max = 5,  B = 10, bw='reference', method='integral'
-,ci.type="mbb") # dependence
+res3 <- Srho.test.ts.p(x, y, lag.max = 5,  B = 40, ci.type="mbb") # independence
+res4 <- Srho.test.ts.p(x, z, lag.max = 5,  B = 40, ci.type="mbb") # dependence
 }}
+
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
 \keyword{ts}

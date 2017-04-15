@@ -1,5 +1,14 @@
+# Changes in version 0.6-0
+    - Added bandwidth selection methods to Srho.ts from package ks: least square cross validation (lscv), smoothed cross validation (scv), plugin (pi). The documentation of Srho.ts has been updated accordingly.
+    - In Srho.ts.uni and Srho.ts.biv the bandwidths of the marginal densities are computed only once (this assumes stationarity).
+    - Added Srho.test.ts.p, the parallel version of Srho.test.ts.
+    - Added the url of the Biometrika paper to the docs that had not been updated.
+    - Added the reference to the Biometrika paper in CITATION.
+    - Minor fixes to the documentation.
+    - All the native routines have been registered.
+
 # Changes in version 0.5-12
-    - First CRAN version. Made the package compliant with the latest CRAN policy. 
+    - First CRAN version. Made the package compliant with the latest CRAN policy.
     - Added the url of the Biometrika paper to the docs.
 
 # Changes in version 0.5-11
@@ -8,13 +17,10 @@
     - minor cosmetic changes to documentation files.
 
 # Changes in version 0.5-10
-    - Added the switch "nor" to Srho, Srho.test and related internal routines. This allows the choice over the normalization for Srho in the case of integer/categorical time series. Added a relevant example to the help page
-    of Srho. The information has been inserted in the show method of Srho as a note.
-    - The Fortran subroutines SS* for computing Srho for integer/categorical time series have been modified as to
-    use a unique workhorse function SRHOBIVA.
+    - Added the switch "nor" to Srho, Srho.test and related internal routines. This allows the choice over the normalization for Srho in the case of integer/categorical time series. Added a relevant example to the help page of Srho. The information has been inserted in the show method of Srho as a note.
+    - The Fortran subroutines SS* for computing Srho for integer/categorical time series have been modified as to use a unique workhorse function SRHOBIVA.
     - Fortran subroutines SS,SS2,SSB have been renamed SSUNI,SSUNI2,SSUNIB for consistency.
-    - Simplified the routines Srho.test.uni and Srho.test.biv as to use directly the switch "stationary" to call the
-    associated Fortran routines.
+    - Simplified the routines Srho.test.uni and Srho.test.biv as to use directly the switch "stationary" to call the associated Fortran routines.
     - Minor improvements to the docs of Srho and Srho.test.
 
 # Changes in version 0.5-9

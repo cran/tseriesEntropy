@@ -5,8 +5,8 @@
 Bootstrap/permutation tests of serial and cross dependence for integer or categorical sequences.
 }
 \usage{
-Srho.test(x, y, lag.max, B = 1000, stationary = TRUE, plot = TRUE, quant = c(0.95, 0.99),
- nor = FALSE)
+Srho.test(x, y, lag.max, B = 1000, stationary = TRUE, plot = TRUE,
+quant = c(0.95, 0.99), nor = FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

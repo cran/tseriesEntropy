@@ -8,7 +8,7 @@ on \code{\link{Srho.ts}} and surrogate data obtained through
 Simulated Annealing. Parallel version -- requires parallel.}
  \usage{
 Trho.test.SA.p(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
- bw = c("reference","mlcv", "lscv"), method =c("integral","summation"),
+ bw = c("reference","mlcv", "lscv", "scv", "pi"), method =c("integral","summation"),
  maxpts=0, tol=1e-03, nlag=trunc(length(x)/4), Te=0.0015,
  RT=0.9, eps.SA=0.01, nsuccmax=30, nmax=300, che=100000, nslaves=detectCores())
 }
@@ -54,7 +54,7 @@ algorithm, there should not be the need to change them. The routine requires the
 }
 \references{
 Giannerini S., Maasoumi E., Bee Dagum E., (2015), Entropy testing
-for nonlinear serial dependence in time series, \emph{Biometrika}, forthcoming
+for nonlinear serial dependence in time series, \emph{Biometrika}, \bold{102(3)}, 661--675
 \url{http://doi.org/10.1093/biomet/asv007}.
 }
 \author{Simone Giannerini<simone.giannerini@unibo.it>}
@@ -62,13 +62,13 @@ for nonlinear serial dependence in time series, \emph{Biometrika}, forthcoming
 \examples{
 \dontrun{
 # modifiy nslaves to match the number of available cores
-set.seed(1345)
+set.seed(13)
 x      <- arima.sim(n=120, model = list(ar=0.8));
-result <- Trho.test.SA.p(x, lag.max = 5,  B = 100, bw='reference', method='integral', nslaves=2)
+result <- Trho.test.SA.p(x, lag.max = 5, B = 100, bw='reference', nslaves=2)
 
 ## ** Compare timings **
-system.time(Trho.test.SA.p(x, lag.max = 5,  B = 100, bw='reference', method='integral', nslaves=4))
-system.time(Trho.test.SA(x, lag.max = 5,  B = 100, bw='reference', method='integral'))
+system.time(Trho.test.SA.p(x, lag.max = 5, B = 100, bw='reference', nslaves=4))
+system.time(Trho.test.SA(x, lag.max = 5, B = 100, bw='reference'))
 }}
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

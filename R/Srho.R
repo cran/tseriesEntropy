@@ -104,10 +104,10 @@ Srho.uni.F <- function(x,lag.max,stationary=TRUE, plot=FALSE, nor=FALSE){
     ## FORTRAN VERSION OF Srho.R
 
     if(stationary==TRUE) {
-        Srho <- .Fortran("ssuni2",as.integer(x),as.integer(length(x)),as.integer(lag.max),S=as.double(rep(0,lag.max)), as.integer(nor),PACKAGE="tseriesEntropy")$S
+        Srho <- .Fortran("ssuni2",as.integer(x),as.integer(length(x)),as.integer(lag.max),S=as.double(rep(0,lag.max)), as.integer(nor))$S
     }
     else {
-        Srho <- .Fortran("ssuni",as.integer(x),as.integer(length(x)),as.integer(lag.max),S=as.double(rep(0,lag.max)), as.integer(nor),PACKAGE="tseriesEntropy")$S
+        Srho <- .Fortran("ssuni",as.integer(x),as.integer(length(x)),as.integer(lag.max),S=as.double(rep(0,lag.max)), as.integer(nor))$S
     }
     out <- new("Srho")
     out@.Data      <- Srho
@@ -329,10 +329,10 @@ Srho.biv.F <- function(x,y,lag.max,stationary=TRUE,plot=FALSE,nor=FALSE){
     ## Check for equal length **********
 
     if(stationary==TRUE) {
-        SS <- .Fortran("ssbiv2",as.integer(x),as.integer(y),as.integer(n),as.integer(lag.max),S=double((2*lag.max+1)),as.integer(nor),PACKAGE="tseriesEntropy")$S
+        SS <- .Fortran("ssbiv2",as.integer(x),as.integer(y),as.integer(n),as.integer(lag.max),S=double((2*lag.max+1)),as.integer(nor))$S
     }
     else {
-        SS <- .Fortran("ssbiv", as.integer(x),as.integer(y),as.integer(n),as.integer(lag.max),S=double((2*lag.max+1)),as.integer(nor),PACKAGE="tseriesEntropy")$S
+        SS <- .Fortran("ssbiv", as.integer(x),as.integer(y),as.integer(n),as.integer(lag.max),S=double((2*lag.max+1)),as.integer(nor))$S
     }
     out <- new("Srho")
     out@.Data      <-  SS
