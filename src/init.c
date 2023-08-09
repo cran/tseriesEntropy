@@ -10,7 +10,9 @@
 extern void F77_NAME(kdenestmlcv)(void *, void *, void *, void *, void *);
 extern void F77_NAME(kdenestmlcvb)(void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(srhointegrand)(void *, void *, void *, void *, void *, void *, void *, void *, void *);
-extern void F77_NAME(srhosum)(void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern void F77_NAME(srhointegrand2)(void *, void *, void *, void *, void *, void *, void *, void *);
+extern void F77_NAME(srhointegrandv)(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern void F77_NAME(srhosum)(void *, void *, void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(ssbiv)(void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(ssbiv2)(void *, void *, void *, void *, void *, void *);
 extern void F77_NAME(ssbivb)(void *, void *, void *, void *, void *, void *, void *, void *, void *);
@@ -23,7 +25,9 @@ static const R_FortranMethodDef FortranEntries[] = {
     {"kdenestmlcv",   (DL_FUNC) &F77_NAME(kdenestmlcv),    5},
     {"kdenestmlcvb",  (DL_FUNC) &F77_NAME(kdenestmlcvb),   6},
     {"srhointegrand", (DL_FUNC) &F77_NAME(srhointegrand),  9},
-    {"srhosum",       (DL_FUNC) &F77_NAME(srhosum),        9},
+    {"srhointegrand2",(DL_FUNC) &F77_NAME(srhointegrand2), 8},
+    {"srhointegrandv",(DL_FUNC) &F77_NAME(srhointegrandv),10},
+    {"srhosum",       (DL_FUNC) &F77_NAME(srhosum),        8},
     {"ssbiv",         (DL_FUNC) &F77_NAME(ssbiv),          6},
     {"ssbiv2",        (DL_FUNC) &F77_NAME(ssbiv2),         6},
     {"ssbivb",        (DL_FUNC) &F77_NAME(ssbivb),         9},

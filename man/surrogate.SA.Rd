@@ -8,7 +8,7 @@ Each surrogate series is a constrained random permutation having the same autoco
 The surrogates can be used for testing for non linearity in time series.
 }
 \usage{
-surrogate.SA(x, nlag, nsurr, Te = 0.0015, RT = 0.9, eps.SA = 0.01, nsuccmax = 30,
+surrogate.SA(x, nlag, nsurr, Te = 0.0015, RT = 0.9, eps.SA = 0.05, nsuccmax = 30,
  nmax = 300, che = 1e+05)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -24,8 +24,8 @@ surrogate.SA(x, nlag, nsurr, Te = 0.0015, RT = 0.9, eps.SA = 0.01, nsuccmax = 30
   \item{che}{after \code{che*2N} global iterations the algorithm starts again.}
 }
 \details{
-\code{N} is the length of the series \code{x}. Sensible (N-dependent) defaults are derived for the parameters of the SA
-algorithm, there should not be the need to change them.
+Let \code{N} be the length of the series \code{x}. Sensible (\code{N}-dependent) defaults are derived for the parameters of the
+algorithm, there should not be the need to change them. In case, the user could try increasing \code{eps.SA}.
 }
 \value{
 A list with the following elements:
@@ -35,7 +35,7 @@ A list with the following elements:
 \references{
 Giannerini S., Maasoumi E., Bee Dagum E., (2015), Entropy testing
 for nonlinear serial dependence in time series, \emph{Biometrika}, \bold{102(3)}, 661--675
-\url{http://doi.org/10.1093/biomet/asv007}.
+\doi{10.1093/biomet/asv007}.
 
 Schreiber T., Schmitz A.,(2000) Surrogate time series. \emph{Physica D}, \bold{142(3-4)}, 346--382.
 }

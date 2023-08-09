@@ -5,13 +5,13 @@
 Bootstrap/permutation tests of serial and cross dependence for integer or categorical sequences.
 }
 \usage{
-Srho.test(x, y, lag.max, B = 1000, stationary = TRUE, plot = TRUE,
+Srho.test(x, y, lag.max=10, B = 1000, stationary = TRUE, plot = TRUE,
 quant = c(0.95, 0.99), nor = FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{x, y}{integer or factor time series objects or vectors. (\code{y} is missing in the univariate case).}
-  \item{lag.max}{maximum lag at which to calculate Srho; default is \code{trunc(N/4)} where N is the number of observations.}
+  \item{lag.max}{maximum lag at which to calculate Srho; the default is 10.}
   \item{B}{number of bootstrap/permutation replications.}
   \item{stationary}{logical. If \code{TRUE} assumes stationarity and computes marginal probabilities by using all the N observations. If \code{FALSE} uses N-k observations where k is the lag.}
   \item{plot}{logical. If \code{TRUE}(the default) produces a plot of Srho together with permutation confidence bands under the null hypothesis of independence.}

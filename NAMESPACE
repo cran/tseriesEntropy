@@ -1,6 +1,5 @@
 useDynLib(tseriesEntropy, .registration = TRUE, .fixes = "C_")
 import(methods,cubature,parallel,stats,graphics,ks)
-##importFrom(methods, show)
 export(
 Srho
 ,Srho.test

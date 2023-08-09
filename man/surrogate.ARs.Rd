@@ -7,20 +7,19 @@ Starting from a time series \code{x} given as input, the function generates surr
 The surrogates can be used for testing for non linearity in time series.
 }
 \usage{
-surrogate.ARs(x, order.max = 10,
+surrogate.ARs(x, order.max = NULL,
  fit.method = c("yule-walker","burg", "ols", "mle", "yw"), nsurr)
 }
 \arguments{
   \item{x}{a univariate numeric time series object or a numeric vector.}
-  \item{order.max}{maximum order of the AR model to fit.}
-  \item{fit.method}{character string giving the method used to fit the AR model.
-  Must be one of the strings in the default argument (the first few characters are sufficient). Defaults to "yule-walker".}
+  \item{order.max}{maximum order of the AR model to fit. Passed to \code{\link{ar}}.}
+  \item{fit.method}{character string giving the method used to fit the AR model. It is passed to \code{\link{ar}} and
+  has to be one of the strings in the default argument (partial matching works). Defaults to "yule-walker".}
   \item{nsurr}{number of surrogates.}
 }
 \details{
-\code{N} is the length of the series \code{x}. The best AR model is chosen by means of the AIC criterion. Surrogate series are obtained by driving the fitted model with
-the smoothed resampled residuals. Smoothing is performed through
-Kernel density estimation with a Gaussian Kernel by using the
+Let \code{N} be the length of the series \code{x}. The best AR model is chosen by means of the AIC criterion. Surrogate series are obtained by driving the fitted model with
+the smoothed resampled residuals. Smoothing is performed through Kernel density estimation with a Gaussian Kernel by using the
 dafaults of \code{\link{density}}.}
 \value{
 A list with the following elements:
@@ -30,7 +29,7 @@ A list with the following elements:
 \references{
 Giannerini S., Maasoumi E., Bee Dagum E., (2015), Entropy testing
 for nonlinear serial dependence in time series, \emph{Biometrika}, \bold{102(3)}, 661--675
-\url{http://doi.org/10.1093/biomet/asv007}.
+\doi{10.1093/biomet/asv007}.
 
 Bickel, P., Buhlmann, P., (1999). A new mixing notion and
 functional central limit theorems for a sieve bootstrap in time
@@ -43,7 +42,7 @@ series. \emph{Bernoulli} \bold{5}, 413--446. }
 set.seed(1345)
 # Generates a AR(1) series
 x      <- arima.sim(n=120, model = list(ar=0.8));
-x.surr <- surrogate.ARs(x, order.max=10, nsurr=3);
+x.surr <- surrogate.ARs(x, order.max=NULL, nsurr=3);
 plot.ts(x.surr$surr,col=4);
 
 

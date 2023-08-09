@@ -10,11 +10,11 @@ citHeader("To cite the 'tseriesEntropy' package in publications use:")
          author = c(
            person("Simone", "Giannerini", role = c("aut","cre"), email = "simone.giannerini@unibo.it")
          ),
-         year = "2017",
-         note = "R package version 0.6-0",
+         year = "2021",
+         note = "R package version 0.7-2",
          url = "https://CRAN.R-project.org/package=tseriesEntropy",
          key = "tseriesEntropy-package",
-         textVersion = "Giannerini S. (2017) tseriesEntropy: entropy based analysis and tests for time series. R package version 0.6-0, <URL: http://CRAN.R-project.org/package=tseriesEntropy>."
+         textVersion = "Giannerini S. (2023) tseriesEntropy: entropy based analysis and tests for time series. R package version 0.7-1, <URL: http://CRAN.R-project.org/package=tseriesEntropy>."
     )
 
     bibentry(
@@ -29,8 +29,7 @@ citHeader("To cite the 'tseriesEntropy' package in publications use:")
         pages = "661-675",
         volume = "102",
         issue = "3",
-        url = "http://biomet.oxfordjournals.org/content/102/3/661.abstract",
+        url = "https://doi.org/10.1093/biomet/asv007",
         year = "2015",
-        textVersion = "Giannerini S., Maasoumi E., and Bee Dagum E. (2015), Entropy testing for nonlinear serial dependence in time series,
-        Biometrika, 102(3): 661-675."
+        textVersion = "Giannerini S., Maasoumi E., and Bee Dagum E. (2015), Entropy testing for nonlinear serial dependence in time series, Biometrika, 102(3): 661-675."
     ) 

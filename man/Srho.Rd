@@ -44,7 +44,7 @@ Granger C. W. J., Maasoumi E., Racine J., (2004) A dependence metric for possibl
 
 Giannerini S., Maasoumi E., Bee Dagum E., (2015), Entropy testing
 for nonlinear serial dependence in time series, \emph{Biometrika}, \bold{102(3)}, 661--675
-\url{http://doi.org/10.1093/biomet/asv007}.
+\doi{10.1093/biomet/asv007}.
 
 Maasoumi E., (1993) A compendium to information theory in economics and econometrics.
 \emph{Econometric Reviews}, \bold{12(2)}, 137--181.

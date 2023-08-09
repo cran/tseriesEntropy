@@ -6,27 +6,27 @@ Entropy based measure of serial and cross dependence for continuous data. For in
 Implements a normalized version of the Hellinger/Matusita distance. As shown in the references the metric measure is a proper distance.}
 \usage{
 Srho.ts(x, y, lag.max = 10, bw = c("reference", "mlcv", "lscv", "scv", "pi"),
- method = c("integral", "summation"), plot = TRUE,
- maxpts = 0, tol = 0.001)
+bdiag=TRUE, method = c("integral", "summation"), plot = TRUE, tol = 0.001, ...)
 }
 \arguments{
   \item{x, y}{univariate numeric time series object or numeric vectors (\code{y} is missing in the univariate case).}
   \item{lag.max}{maximum lag at which to calculate Srho; default is 10}
   \item{bw}{Object of class \code{"character"}: bandwidth selection method, can be \code{"reference"}, \code{"mlcv"}, \code{"lscv"}, \code{"scv"}, \code{"pi"}.}
+  \item{bdiag}{Object of class \code{"logical"}: if \code{TRUE} uses the diagonal version of the bandwidth selectors \code{lscv}, \code{scv}, \code{pi}.}
   \item{method}{Object of class \code{"character"}: computation method, can be \code{"integral"} or \code{"summation"}.}
   \item{plot}{logical. If \code{TRUE} (the default) Srho is plotted.}
-  \item{maxpts}{maximum number of function evaluations, passed to \code{\link[cubature]{adaptIntegrate}}, defaults to 0 (unlimited).}
-  \item{tol}{max. tolerance, passed to \code{\link[cubature]{adaptIntegrate}}.}
+  \item{tol}{max. tolerance, passed to \code{\link[cubature]{hcubature}}.}
+  \item{...}{further arguments, typically passed to \code{\link[cubature]{hcubature}}.}
 }
 \details{
 \describe{
 \item{Univariate version: serial entropy}{\preformatted{Srho.ts(x, lag.max = 10,
- bw = c("reference", "mlcv", "lscv", "scv", "pi"),
- method = c("integral", "summation"), plot = TRUE, maxpts = 0, tol = 0.001)}}
+ bw = c("reference", "mlcv", "lscv", "scv", "pi"), bdiag=TRUE,
+ method = c("integral", "summation"), plot = TRUE, tol = 0.001)}}
 
 \item{Bivariate version: cross entropy}{\preformatted{Srho.ts(x, y, lag.max = 10,
- bw = c("reference", "mlcv", "lscv", "scv", "pi"),
- method = c("integral", "summation"), plot = TRUE, maxpts = 0, tol = 0.001)}}
+ bw = c("reference", "mlcv", "lscv", "scv", "pi"), bdiag=TRUE,
+ method = c("integral", "summation"), plot = TRUE, tol = 0.001)}}
 }
 The bandwidth selection methods are the following:
 \describe{
@@ -36,6 +36,8 @@ The bandwidth selection methods are the following:
   \item{\code{scv}:}{smoothed cross-validation, see \code{\link[ks]{Hscv}}}
   \item{\code{pi}:}{plugin, see \code{\link[ks]{Hpi}}}
 }
+If \code{bdiag = TRUE} (the default), the diagonal bandwidth selectors \code{Hlscv.diag},
+\code{Hscv.diag}, \code{Hpi.diag} are used.
 }
 \value{An object of class "Srho.ts", with the following slots:
     \item{.Data}{Object of class \code{"numeric"}: contains Srho computed on the data set.}
@@ -55,11 +57,11 @@ Maasoumi E., (1993) A compendium to information theory in economics and economet
 
 Giannerini S., Maasoumi E., Bee Dagum E., (2015), Entropy testing
 for nonlinear serial dependence in time series, \emph{Biometrika}, \bold{102(3)}, 661--675
-\url{http://doi.org/10.1093/biomet/asv007}.
+\doi{10.1093/biomet/asv007}.
 }
  \author{Simone Giannerini<simone.giannerini@unibo.it>}
 
-\seealso{\code{\link{Srho.test.ts}}, \code{\link[cubature]{adaptIntegrate}}, \code{\link[ks]{ks}}.
+\seealso{\code{\link{Srho.test.ts}}, \code{\link[cubature]{hcubature}}, \code{\link[ks]{ks}}.
 The function \code{\link{Srho}} implements the same measure for integer/categorical data.}
 \examples{
 set.seed(11)

@@ -30,11 +30,11 @@
 ## **************************************************************************************************
 
 Srho.test.ts.p <- function(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
-bw = c("reference", "mlcv", "lscv", "scv", "pi"), method =c("integral","summation"),
-maxpts=0, tol=1e-03, ci.type = c("mbb","perm"),nslaves=detectCores()){
+bw = c("reference", "mlcv", "lscv", "scv", "pi"), bdiag=TRUE, method =c("integral","summation"),
+ tol=1e-03, ci.type = c("mbb","perm"),nwork=detectCores(),...){
 
-	if(nslaves < 2) stop('Number of slaves must be at least 2.')
-	if(nslaves > detectCores()) warning('Number of slaves greater than number of cores.')
+	if(nwork < 2) stop('Number of workers must be at least 2.')
+	if(nwork > detectCores()) warning('Number of workers greater than number of cores.')
     if(any(quant<=0|quant>=1)) stop("elements of quant must lie in ]0,1[");
     if(length(quant)==1){
         if(quant==0.99){
@@ -43,7 +43,7 @@ maxpts=0, tol=1e-03, ci.type = c("mbb","perm"),nslaves=detectCores()){
             quant <- c(quant,0.99)
         }
     }
-    Bnew       <- B + 2*nslaves # adds 2 replications per slave
+    Bnew       <- B + 2*nwork # adds 2 replications per slave
     bw         <- match.arg(bw)
 	method     <- match.arg(method)
     ci.type <- match.arg(ci.type)
@@ -53,30 +53,32 @@ maxpts=0, tol=1e-03, ci.type = c("mbb","perm"),nslaves=detectCores()){
         lag.names <- 1:lag.max
         ci.type   <- "perm"
     }else{
-        X <- ts.intersect(as.ts(x), as.ts(y)) # time alignment
-        x <- X[,1]
-        y <- X[,2]
-        y.surr    <- switch(ci.type,"mbb"=mbboot(x=y,B=Bnew,l=lag.max),"perm"=boot.perm(x=y, B=Bnew))
-        lag.names <- -lag.max:lag.max
+      if(!exists('blag')){
+        blag <- lag.max
+      }
+      X <- ts.intersect(as.ts(x), as.ts(y)) # time alignment
+      x <- X[,1]
+      y <- X[,2]
+      y.surr    <- switch(ci.type,"mbb"=mbboot(x=y,B=Bnew,l=blag),"perm"=boot.perm(x=y, B=Bnew))
+      lag.names <- -lag.max:lag.max
     }
-    x.surr  <- switch(ci.type,"mbb"=mbboot(x=x,B=Bnew,l=lag.max),"perm"=boot.perm(x=x, B=Bnew))
+    x.surr  <- switch(ci.type,"mbb"=mbboot(x=x,B=Bnew,l=blag),"perm"=boot.perm(x=x, B=Bnew))
     arg.s   <- list(x=x,y=y,nsurr = Bnew)
-    cl      <- makeCluster(nslaves)
+    cl      <- makeCluster(nwork)
     junk1   <- clusterEvalQ(cl, library(tseriesEntropy))
-    varlist <- c("x.surr","y.surr","B","lag.max","bw","method","maxpts","tol","arg.s")
+    varlist <- c("x.surr","y.surr","B","lag.max","bw","method","tol","arg.s")
     for(v in varlist) {
         environment(v) <- .GlobalEnv
     }
     clusterExport(cl,varlist,envir = environment())
     dum    <- clusterSplit(cl,1:Bnew)
     result <- clusterApply(cl,x=dum,fun=function(x){
-        safe.Srho(x.surr=x.surr$surr[,x],y.surr=y.surr$surr[,x],B.good=(length(x)-2),lag.max=lag.max,bw=bw,method=method, maxpts=maxpts, tol=tol)
+        safe.Srho(x.surr=x.surr$surr[,x],y.surr=y.surr$surr[,x],B.good=(length(x)-2),lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, tol=tol,...)
     })
 	stopCluster(cl);
-    S.x    <- Srho.ts(x=x,y=y,lag.max=lag.max,bw=bw,method=method, plot=FALSE,
-                maxpts=maxpts, tol=tol)@.Data
+    S.x    <- Srho.ts(x=x,y=y,lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, plot=FALSE, tol=tol,...)@.Data
     M <- NULL
-	for(i in 1:nslaves){
+	for(i in 1:nwork){
 		M <- cbind(M,result[[i]])
 	}
     rownames(M) <- lag.names
@@ -109,11 +111,11 @@ maxpts=0, tol=1e-03, ci.type = c("mbb","perm"),nslaves=detectCores()){
 ## **************************************************************************************************
 
 Srho.test.AR.p <- function(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
-bw = c("reference","mlcv", "lscv", "scv", "pi"), method =c("integral","summation"),
-maxpts=0, tol=1e-03, order.max=10, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),
-smoothed=TRUE, nslaves=detectCores()){
-	if(nslaves < 2) stop('Number of slaves must be at least 2.')
-	if(nslaves > detectCores()) warning('Number of slaves greater than number of cores.')
+bw = c("reference","mlcv", "lscv", "scv", "pi"), bdiag=TRUE, method =c("integral","summation"),  tol=1e-03, order.max=NULL,
+fit.method=c("yule-walker", "burg", "ols", "mle", "yw"), smoothed=TRUE,
+nwork=detectCores(),...){
+	if(nwork < 2) stop('Number of workers must be at least 2.')
+	if(nwork > detectCores()) warning('Number of workers greater than number of cores.')
 	
 	if(any(quant<=0|quant>=1)) stop("elements of quant must lie in ]0,1[");
 	if(length(quant)==1){
@@ -123,7 +125,7 @@ smoothed=TRUE, nslaves=detectCores()){
 		quant <- c(quant,0.99)
 		}
 	}
-    Bnew       <- B + 2*nslaves # adds 2 replications per slave
+    Bnew       <- B + 2*nwork # adds 2 replications per slave
     bw         <- match.arg(bw)
 	method     <- match.arg(method)
 	fit.method <- match.arg(fit.method)
@@ -131,23 +133,22 @@ smoothed=TRUE, nslaves=detectCores()){
     fun        <- switch(smoothed+1,"surrogate.AR","surrogate.ARs")
 	if (missing(y)){
         x.surr <- do.call(eval(fun),args=arg.s)
-        cl     <- makeCluster(nslaves)
+        cl     <- makeCluster(nwork)
         junk1  <- clusterEvalQ(cl, library(tseriesEntropy))
-        varlist <- c("x.surr","B","lag.max","bw","method","fit.method","maxpts","tol","arg.s")
+        varlist <- c("x.surr","B","lag.max","bw","method","fit.method","tol","arg.s")
         for(v in varlist) {
             environment(v) <- .GlobalEnv
         }
         clusterExport(cl,varlist,envir = environment())
         dum <- clusterSplit(cl,1:Bnew)
         result <- clusterApply(cl,x=dum,fun=function(x){
-            safe.Srho(x.surr=x.surr$surr[,x],B.good=(length(x)-2),lag.max=lag.max,bw=bw,method=method, maxpts=maxpts, tol=tol)
+            safe.Srho(x.surr=x.surr$surr[,x],B.good=(length(x)-2),lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, tol=tol,...)
             })
-#		result   <-  clusterEvalQ(cl,tseriesEntropy:::safe.Srho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max,bw=bw,method=method, maxpts=maxpts, tol=tol));
+#		result   <-  clusterEvalQ(cl,tseriesEntropy:::safe.Srho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max,bw=bw,method=method, tol=tol));
 		stopCluster(cl);
-		S.x    <- Srho.ts(x,lag.max=lag.max,bw=bw,method=method, plot=FALSE,
-					maxpts=maxpts, tol=tol)
+		S.x    <- Srho.ts(x,lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, plot=FALSE, tol=tol,...)
 		M <- NULL
-		for(i in 1:nslaves){
+		for(i in 1:nwork){
 			M <- cbind(M,result[[i]])
 		}
         rownames(M) <- 1:lag.max
@@ -185,11 +186,11 @@ smoothed=TRUE, nslaves=detectCores()){
 ## **************************************************************************************************
 
 Trho.test.SA.p <- function(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
-bw = c("reference","mlcv", "lscv", "scv", "pi"), method =c("integral","summation"),
-maxpts=0, tol=1e-03, nlag=trunc(length(x)/4),Te=0.0015,RT=0.9,
-eps.SA=0.01, nsuccmax=30, nmax=300, che=100000, nslaves=detectCores()){
-	if(nslaves < 2) stop('Number of slaves must be at least 2.')
-	if(nslaves > detectCores()) warning('Number of slaves greater than number of cores.')
+bw = c("reference","mlcv", "lscv", "scv", "pi"), bdiag=TRUE, method =c("integral","summation"),
+ tol=1e-03, nlag=trunc(length(x)/4),Te=0.0015,RT=0.9,
+eps.SA=0.05, nsuccmax=30, nmax=300, che=100000, nwork=detectCores(),...){
+	if(nwork < 2) stop('Number of workers must be at least 2.')
+	if(nwork > detectCores()) warning('Number of workers greater than number of cores.')
 	
 	if(any(quant<=0|quant>=1)) stop("elements of quant must lie in ]0,1[");
 	if(length(quant)==1){
@@ -199,30 +200,30 @@ eps.SA=0.01, nsuccmax=30, nmax=300, che=100000, nslaves=detectCores()){
 		quant <- c(quant,0.99)
 		}
 	}
-    Bnew       <- B + 2*nslaves # adds 2 replications per slave
+    Bnew       <- B + 2*nwork # adds 2 replications per slave
     bw         <- match.arg(bw)
 	method     <- match.arg(method)
     arg.s      <- list(x=x,nlag=nlag,nsurr=Bnew,Te=Te,RT=RT,eps.SA=eps.SA,nsuccmax=nsuccmax,nmax=nmax,che=che)
     fun        <- "surrogate.SA"
 	if (missing(y)){
         x.surr <- do.call(eval(fun),args=arg.s)
-        cl     <- makeCluster(nslaves)
+        cl     <- makeCluster(nwork)
         junk1  <- clusterEvalQ(cl, library(tseriesEntropy))
-        varlist <- c("x.surr","B","lag.max","bw","che","maxpts","tol")
+        varlist <- c("x.surr","B","lag.max","bw","che","tol")
         for(v in varlist) {
             environment(v) <- .GlobalEnv
         }
         clusterExport(cl,varlist,envir = environment())
         dum <- clusterSplit(cl,1:Bnew)
         result <- clusterApply(cl,x=dum,fun=function(x){
-            safe.Trho(x.surr=x.surr$surr[,x],B.good=(length(x)-2),lag.max=lag.max,bw=bw,method=method,maxpts=maxpts, tol=tol)
+            safe.Trho(x.surr=x.surr$surr[,x],B.good=(length(x)-2),lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, tol=tol,...)
             })
-#		result   <-  clusterEvalQ(cl,tseriesEntropy:::safe.Srho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max,bw=bw,method=method, maxpts=maxpts, tol=tol));
+#		result   <-  clusterEvalQ(cl,tseriesEntropy:::safe.Srho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max,bw=bw,method=method, tol=tol));
 		stopCluster(cl);
-        S.x    <- (Srho.ts(x,lag.max=lag.max,bw=bw,method=method, plot=FALSE,maxpts=maxpts, tol=tol)@.Data
+        S.x    <- (Srho.ts(x,lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, plot=FALSE, tol=tol,...)@.Data
                          - Srho.cor(x,lag.max=lag.max,plot=FALSE)@.Data)^2
 		M <- NULL
-		for(i in 1:nslaves){
+		for(i in 1:nwork){
 			M <- cbind(M,result[[i]])
 		}
         rownames(M) <- 1:lag.max
@@ -261,11 +262,11 @@ eps.SA=0.01, nsuccmax=30, nmax=300, che=100000, nslaves=detectCores()){
 ## ****************************************************************************************************
 
 Trho.test.AR.p <- function(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
-bw = c("reference", "mlcv", "lscv", "scv", "pi"), method =c("integral","summation"),
-maxpts=0, tol=1e-03, order.max=10, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),
-smoothed=TRUE, nslaves=detectCores()){
-    if(nslaves < 2) stop('Number of slaves must be at least 2.')
-	if(nslaves > detectCores()) warning('Number of slaves greater than number of cores.')
+bw = c("reference", "mlcv", "lscv", "scv", "pi"), bdiag=TRUE, method =c("integral","summation"),
+tol=1e-03, order.max=NULL, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),
+smoothed=TRUE, nwork=detectCores(),...){
+    if(nwork < 2) stop('Number of workers must be at least 2.')
+	if(nwork > detectCores()) warning('Number of workers greater than number of cores.')
 
 	if(any(quant<=0|quant>=1)) stop("elements of quant must lie in ]0,1[");
 	if(length(quant)==1){
@@ -275,7 +276,7 @@ smoothed=TRUE, nslaves=detectCores()){
 		quant <- c(quant,0.99)
 		}
 	}
-    Bnew       <- B + 2*nslaves # adds 2 replications per slave
+    Bnew       <- B + 2*nwork # adds 2 replications per slave
     bw         <- match.arg(bw)
 	method     <- match.arg(method)
 	fit.method <- match.arg(fit.method)
@@ -283,24 +284,24 @@ smoothed=TRUE, nslaves=detectCores()){
     fun        <- switch(smoothed+1,"surrogate.AR","surrogate.ARs")
 	if (missing(y)){
         x.surr <- do.call(eval(fun),args=arg.s)
-        cl     <- makeCluster(nslaves)
+        cl     <- makeCluster(nwork)
         junk1  <- clusterEvalQ(cl, library(tseriesEntropy))
-        varlist <- c("x.surr","B","lag.max","bw","method","fit.method","maxpts","tol","arg.s")
+        varlist <- c("x.surr","B","lag.max","bw","method","fit.method","tol","arg.s")
         for(v in varlist) {
             environment(v) <- .GlobalEnv
         }
         clusterExport(cl,varlist,envir = environment())
         dum <- clusterSplit(cl,1:Bnew)
         result <- clusterApply(cl,x=dum,fun=function(x){
-            safe.Trho(x.surr=x.surr$surr[,x],B.good=(length(x)-2),lag.max=lag.max,bw=bw,method=method,maxpts=maxpts, tol=tol)
+            safe.Trho(x.surr=x.surr$surr[,x],B.good=(length(x)-2),lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, tol=tol,...)
             })
-#		result   <-  clusterEvalQ(cl,tseriesEntropy:::safe.Srho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max,bw=bw,method=method, maxpts=maxpts, tol=tol));
+#		result   <-  clusterEvalQ(cl,tseriesEntropy:::safe.Srho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max,bw=bw,method=method, tol=tol));
 		stopCluster(cl);
 
-        S.x    <- (Srho.ts(x,lag.max=lag.max,bw=bw,method=method, plot=FALSE,
-                                maxpts=maxpts, tol=tol)@.Data - Srho.cor(x,lag.max=lag.max,plot=FALSE)@.Data)^2
+        S.x    <- (Srho.ts(x,lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, plot=FALSE,tol=tol,...)@.Data -
+                    Srho.cor(x,lag.max=lag.max,plot=FALSE)@.Data)^2
 		M <- NULL
-		for(i in 1:nslaves){
+		for(i in 1:nwork){
 			M <- cbind(M,result[[i]])
 		}
         rownames(M) <- 1:lag.max

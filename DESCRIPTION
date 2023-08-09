@@ -1,15 +1,21 @@
 Package: tseriesEntropy
 Title: Entropy Based Analysis and Tests for Time Series
-Date: 2017-04-15
-Version: 0.6-0
-Author: Simone Giannerini
+Version: 0.7-2
+Authors@R: c(
+   person('Simone', 'Giannerini', email = 'simone.giannerini@unibo.it', role = c('aut','cre'),
+    comment = c(ORCID = '0000-0002-0710-668X'))
+    )
 Depends: R (>= 2.14.0)
 Imports: cubature, methods, parallel, stats, graphics, ks
-Suggests:
-Description: Implements an Entropy measure of dependence based on the Bhattacharya-Hellinger-Matusita distance. Can be used as a (nonlinear) autocorrelation/crosscorrelation function for continuous and categorical time series. The package includes tests for serial dependence and nonlinearity based on it. Some routines have a parallel version that can be used in a multicore/cluster environment. The package makes use of S4 classes.
+Suggests: knitr, rmarkdown
+LazyLoad: yes
+Encoding: UTF-8
+Description: Implements an Entropy measure of dependence based on the Bhattacharya-Hellinger-Matusita distance. Can be used as a (nonlinear) autocorrelation/crosscorrelation function for continuous and categorical time series. The package includes tests for serial and cross dependence and nonlinearity based on it. Some routines have a parallel version that can be used in a multicore/cluster environment. The package makes use of S4 classes.
 Maintainer: Simone Giannerini <simone.giannerini@unibo.it>
 License: GPL (>= 2)
+RoxygenNote: 7.2.3
 NeedsCompilation: yes
-Packaged: 2017-04-15 17:09:02 UTC; Simone
+Packaged: 2023-08-09 15:00:11 UTC; simone.giannerini2
+Author: Simone Giannerini [aut, cre] (<https://orcid.org/0000-0002-0710-668X>)
 Repository: CRAN
-Date/Publication: 2017-04-15 20:31:49 UTC
+Date/Publication: 2023-08-09 20:40:08 UTC

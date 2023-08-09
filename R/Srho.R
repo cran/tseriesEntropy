@@ -32,9 +32,10 @@ setClass("Srho",
 
 ## ***************************************************************************************************
 setMethod("plot" , signature(x = "Srho",y = "missing"),
-     function(x, y, type = "s", xlab = "lag", ylab = "S", ylim=c(0,max(x@.Data)), main = NULL,col=1,mai=c(.85,.75,.1,.1),lwd=1.5, grid=TRUE, ...){
+     function(x, y, type = "s", xlab = "lag", ylab = "S", ylim=c(0,max(x@.Data)),col=1,mai=c(.85,.85,.1,.1),lwd=1.5, grid=TRUE, ...){
             par(mai= mai);
             plot(x@lags,x@.Data,type=type,col=col,xlab=xlab,ylab=ylab,ylim=ylim,lwd=lwd,...);
+            abline(h=0,lty=2,col=1);
             if(grid){grid()}
       }
 )
@@ -45,10 +46,10 @@ setMethod ("show" , "Srho",
     names(out) <- object@lags;
     n <- length(out);
     lag.max <- object@lags[n]
-    cat (" Srho computed on", lag.max, "lags \n")
-    cat (" -------------------------------------------------------------------------- \n")
-    print(out)
-    cat (" -------------------------------------------------------------------------- \n")
+    cat (" Srho computed on", length(out), "lags \n")
+    cat ("-------------------------------------------------------------------------- \n")
+    print(out, digits=4)
+    cat ("-------------------------------------------------------------------------- \n")
     cat (" Data type          :" , object@data.type , "\n")
     cat (" Stationary version :" , object@stationary , "\n")
     if(length(object@notes)>0){
@@ -104,10 +105,10 @@ Srho.uni.F <- function(x,lag.max,stationary=TRUE, plot=FALSE, nor=FALSE){
     ## FORTRAN VERSION OF Srho.R
 
     if(stationary==TRUE) {
-        Srho <- .Fortran("ssuni2",as.integer(x),as.integer(length(x)),as.integer(lag.max),S=as.double(rep(0,lag.max)), as.integer(nor))$S
+        Srho <- .Fortran("ssuni2",as.integer(x),as.integer(length(x)),as.integer(lag.max),S=as.double(rep(0,lag.max)), as.integer(nor),PACKAGE='tseriesEntropy')$S
     }
     else {
-        Srho <- .Fortran("ssuni",as.integer(x),as.integer(length(x)),as.integer(lag.max),S=as.double(rep(0,lag.max)), as.integer(nor))$S
+        Srho <- .Fortran("ssuni",as.integer(x),as.integer(length(x)),as.integer(lag.max),S=as.double(rep(0,lag.max)), as.integer(nor),PACKAGE='tseriesEntropy')$S
     }
     out <- new("Srho")
     out@.Data      <- Srho
@@ -329,10 +330,10 @@ Srho.biv.F <- function(x,y,lag.max,stationary=TRUE,plot=FALSE,nor=FALSE){
     ## Check for equal length **********
 
     if(stationary==TRUE) {
-        SS <- .Fortran("ssbiv2",as.integer(x),as.integer(y),as.integer(n),as.integer(lag.max),S=double((2*lag.max+1)),as.integer(nor))$S
+        SS <- .Fortran("ssbiv2",as.integer(x),as.integer(y),as.integer(n),as.integer(lag.max),S=double((2*lag.max+1)),as.integer(nor),PACKAGE='tseriesEntropy')$S
     }
     else {
-        SS <- .Fortran("ssbiv", as.integer(x),as.integer(y),as.integer(n),as.integer(lag.max),S=double((2*lag.max+1)),as.integer(nor))$S
+        SS <- .Fortran("ssbiv", as.integer(x),as.integer(y),as.integer(n),as.integer(lag.max),S=double((2*lag.max+1)),as.integer(nor),PACKAGE='tseriesEntropy')$S
     }
     out <- new("Srho")
     out@.Data      <-  SS

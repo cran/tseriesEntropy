@@ -55,8 +55,7 @@ setMethod ("show" , "Srho.ts",
 ## ***************************************************************************************************
 
 Srho.ts <- function(x,y, lag.max = 10, bw = c("reference",
-"mlcv", "lscv", "scv", "pi"), method =c("integral","summation"), plot = TRUE,
-maxpts=0, tol=1e-03){
+"mlcv", "lscv", "scv", "pi"), bdiag=TRUE, method =c("integral","summation"), plot = TRUE, tol=1e-03,...){
 
     n <- length(x);
     if (missing(lag.max)) lag.max = round(n/4);
@@ -67,32 +66,27 @@ maxpts=0, tol=1e-03){
 #    if(stationary=TRUE) stop("Stationary version not yet implemented for continuous data");
     if(!is.numeric(x)) stop('input series must be numeric')
     if (missing(y)||is.null(y)){ # RICORDARSI DI AGGIORNARE GLI HELP *********
-        return(Srho.ts.uni(x,lag.max=lag.max,bw=bw,method=method, plot=plot,
-        maxpts=maxpts, tol=tol))
+        return(Srho.ts.uni(x,lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, plot=plot, tol=tol,...))
     } else {
         if(!is.numeric(y)) stop('input series must be numeric')
-        return(Srho.ts.biv(x,y,lag.max=lag.max,bw=bw,method=method, plot=plot,
-        maxpts=maxpts, tol=tol))
+        return(Srho.ts.biv(x,y,lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, plot=plot, tol=tol,...))
     }
 }
 
 ## **************************************************************************************************
 
-# $Id: Entropy_lib.R,v 2.14 2002/06/23 17:14:05 jracine Exp jracine $
+# $Id: Entropy_lib.R,v 2.14 2002/06/23 17:14:05 jracine Exp jracine $'
 # Written by J. Racine email: jracine@maxwell.syr.edu
-
-# Need to get David's formula for bivariate normal reference bw
 
 # R code defining Srho described in Granger, Maasoumi, and Racine JTSA
 # "A Dependence Metric for Possibly Nonlinear Processes".
 # Finally, univariate and bivariate kernel density routines
 # and cross-validation routines for data-driven bandwidth selection.
 
-
 ## ***************************************************************
 ## Extensively modified by Simone Giannerini
 ## email: simone.giannerini@unibo.it
-## August 2005 - December 2008
+## August 2005 -
 ## *******************************************************************
 ## All the bottleneck parts of the program related to Srho
 ## have been rewritten in F90 and are dynamically loaded
@@ -103,72 +97,89 @@ maxpts=0, tol=1e-03){
 ## multidimensional integration
 ## *******************************************************************
 
-# This first function defines the workhorse function 'Srho.func'. The
-# function accepts two equal length vectors, x and y, and their
-# marginal and bivariate density bandwidths (four in total) along with
-# parameters for numerical integration if the intergral version is
-# used (see below). It returns the integrated or summation value of
-# the dependence metric depending on whether one feeds
-# method="integral" or "summation" to the function.
-
-# The necessary arguments are the vectors x and y. If no bandwidths
-# are specified then the 'reference to a normal distribution' rule of
-# thumb is used. If no training parameters are specified then
-# 'sensible' defaults are used. That is, it can be used simply by
-# calling Srho.integral(x,y) .
-
-# The following defaults are used throughout for numerical
-# integration.  You may change these as desired when you call the
-# function by specifying. These are used by
-# adapt(), the multivariate numerical integration routing embodied in
-# the adapt library.
-
 # maxpts <- 1e06 # Maximum number of function evaluations
-# tol <- 1e-03   # Relative error
+# tol <- 1e-03   # Relative error '
 
+##     ************************************************************************
 
-Srho.func <- function(x1, x2, h1=1.06*(min(sd(x1),IQR(x1)/1.34))*length(x1)^{-1/5},
-h2=1.06*sd(x2)*length(x2)^{-1/5}, h1.biv=1.06*(min(sd(x1),IQR(x1)/1.34))*length(x1)^{-1/6},
-h2.biv=1.06*sd(x2)*length(x2)^{-1/6}, method = c("integral",
-"summation"), maxpts=0, tol=1e-03) {
+Srho.func <- function(x1, x2, h1,h2, Hbiv, method = c("integral", "summation"),
+tol=1e-03,...) {
 
     if(length(x1) != length(x2))  stop("Input vectors differ in length.\n")
-    if((h1 <= 0) || (h2 <= 0) || (h1.biv <= 0) || (h2.biv <= 0))    stop("Bandwidths must be positive.\n")
+    if((h1 <= 0) || (h2 <= 0))    stop("Bandwidths must be positive.\n")
 
     method <- match.arg(method)
 
     if(method == "integral") {
         # For range of integration, use min - range and max + range for each
         # variable
+        lo.default <- c(3*min(x1)-2*max(x1),3*min(x2)-2*max(x2)) # Lower vertices (min -        2range)
+        up.default <- c(3*max(x1)-2*min(x1),3*max(x2)-2*min(x2)) # Upper vertices (max +        2range)
+        xb                 <- cbind(x1,x2)
+        N                  <- nrow(xb)
+        storage.mode(xb)   <- 'double'
+        Hinv               <- solve(Hbiv)
+        storage.mode(Hinv) <- 'double'
+
+         Srho.integrand2 <- function(x) {
+            storage.mode(x) <- 'double'
+            nx              <- NCOL(x)
+           # SUBROUTINE SRhointegrand2(X,nX,xb,N,h1,h2,Hinv,SINT)
+            res <- .Fortran("srhointegrand2",x,as.integer(nx),xb,as.integer(N),
+            as.double(h1),as.double(h2),Hinv,SINT=double(nx),PACKAGE='tseriesEntropy')$SINT;
+            return(matrix(res,ncol=nx))
+         }
+         return(0.5*hcubature(f=Srho.integrand2, lowerLimit=lo.default,
+         upperLimit=up.default, tol = tol,vectorInterface = TRUE,
+         fDim = 1, absError=0,...)$integral)
+    } else if(method == "summation") {
+        h1.biv <- Hbiv[1,1]
+        h2.biv <- Hbiv[2,2]
+        Srho.sum <-
+        .Fortran("srhosum", as.double(x1),as.double(x2), as.integer(length(x1)),
+            as.double(h1),as.double(h2), as.double(h1.biv),as.double(h2.biv),S=double(1),PACKAGE='tseriesEntropy')$S;
+        return(Srho.sum)
+   }
+}
+
+## *****************************************************************************
+
+Srho.func.old <- function(x1, x2, h1, h2, Hbiv, method = c("integral",
+"summation"), tol=1e-03,...) {
+
+    if(length(x1) != length(x2))  stop("Input vectors differ in length.\n")
+    if((h1 <= 0) || (h2 <= 0))    stop("Bandwidths must be positive.\n")
+
+    method <- match.arg(method)
+    h1.biv <- Hbiv[1,1]
+    h2.biv <- Hbiv[2,2]
+    if(method == "integral") {
+        # For range of integration, use min - range and max + range for each
+        # variable
         lo.default <- c(3*min(x1)-2*max(x1),3*min(x2)-2*max(x2)) # Lower vertices (min - 2range)
         up.default <- c(3*max(x1)-2*min(x1),3*max(x2)-2*min(x2)) # Upper vertices (max + 2range)
-
         # Here we define a function which is the integrand of Srho when the
         # densities are estimated using a Gaussian kernel
          Srho.integrand <- function(x) {
             Srho.integrand <- .Fortran("srhointegrand",as.double(x),as.double(x1),as.double(x2),as.integer(length(x1)),
-            as.double(h1),as.double(h2),as.double(h1.biv),as.double(h2.biv),SINT=double(1))$SINT;
+            as.double(h1),as.double(h2),as.double(h1.biv),as.double(h2.biv),SINT=double(1),PACKAGE='tseriesEntropy')$SINT;
             return(Srho.integrand)
          }
-         return(0.5*adaptIntegrate(f=Srho.integrand, lowerLimit=lo.default, upperLimit=up.default, tol = tol,
-         fDim = 1, maxEval = maxpts, absError=0)$integral)
+         return(0.5*hcubature(f=Srho.integrand, lowerLimit=lo.default, upperLimit=up.default, tol = tol,
+         fDim = 1, absError=0,...)$integral)
     } else if(method == "summation") {
 
-        # Here we define a function which computes Srho for one sample
-        # realization when the densities are estimated using a Gaussian kernel
-
-        Srho.sum <- .Fortran("srhosum",as.double(x1),as.double(x1),as.double(x2),as.integer(length(x1)),
-            as.double(h1),as.double(h2),as.double(h1.biv),as.double(h2.biv),S=double(1))$S;
+        Srho.sum <- .Fortran("srhosum",as.double(x1),as.double(x2),as.integer(length(x1)),
+            as.double(h1),as.double(h2),as.double(h1.biv),as.double(h2.biv),S=double(1),PACKAGE='tseriesEntropy')$S;
         return(Srho.sum)
    }
 }
 ## **************************************************************************************************
 
 Srho.ts.uni <- function(x, lag.max = 10, bw = c("reference",
-"mlcv", "lscv", "scv", "pi"), method =c("integral","summation"), plot = TRUE,
-maxpts=0, tol=1e-03) {
+"mlcv", "lscv", "scv", "pi"),bdiag=TRUE, method =c("integral","summation"), plot = TRUE, tol=1e-03,...) {
     n <- length(x)
-    Srho   <- numeric(length(lag.max))
+    S      <- rep(NA,lag.max)
     bw     <- match.arg(bw)
     method <- match.arg(method)
     bw.fun.uni <- paste(bw,"uni",sep=".")
@@ -176,19 +187,17 @@ maxpts=0, tol=1e-03) {
     h1   <- do.call(bw.fun.uni,list(x));
     h2   <- h1
     for(k in 1:lag.max){
-        x.lag0 <- x[1:(n-k)]
-        x.lagk <- x[(1+k):n]
-        h    <- do.call(bw.fun.biv,list(x.lag0,x.lagk));
-        h1.biv <- h[1]
-        h2.biv <- h[2]
-        Srho[k] <- Srho.func(x.lag0,x.lagk,h1,h2,h1.biv,h2.biv,method,maxpts,tol)
+        x.lag0 <- x[(1+k):n]
+        x.lagk <- x[1:(n-k)]
+        Hbiv   <- do.call(bw.fun.biv,list(x.lag0,x.lagk,bdiag));
+        S[k]   <- Srho.func(x.lag0,x.lagk,h1,h2,Hbiv,method,tol,...)
     }
     out <- new("Srho.ts")
-    out@.Data      <- Srho
+    out@.Data      <- S
     out@lags       <- 1:lag.max
     out@stationary <- FALSE
     out@data.type  <- "continuous"
-    out@bandwidth   <- bw
+    out@bandwidth  <- bw
     out@method     <- method
     if (plot){
         plot(out)
@@ -200,42 +209,36 @@ maxpts=0, tol=1e-03) {
 ## **************************************************************************************************
 
 Srho.ts.biv <- function(x, y, lag.max = 10, bw = c("reference",
-"mlcv", "lscv", "scv", "pi"), method = c("integral","summation"),plot=TRUE,
-maxpts=0, tol=1e-03){
+"mlcv", "lscv", "scv", "pi"),bdiag=TRUE, method = c("integral","summation"),plot=TRUE, tol=1e-03,...){
 
     if(length(x) != length(y))  stop("Input vectors differ in length.\n")
 
     n <- length(x)
     bw     <- match.arg(bw)
     method <- match.arg(method)
-    Srho   <- rep(0,(2*lag.max+1))
+    S      <- rep(NA,(2*lag.max+1))
     bw.fun.uni <- paste(bw,"uni",sep=".")
     bw.fun.biv <- paste(bw,"biv",sep=".")
     h1   <- do.call(bw.fun.uni,list(x));
     h2   <- do.call(bw.fun.uni,list(y));
-    h    <- do.call(bw.fun.biv,list(x,y));
-    h1.biv <- h[1]
-    h2.biv <- h[2]
-    Srho[lag.max+1] <- Srho.func(x,y,h1,h2,h1.biv,h2.biv,method,maxpts,tol)
+    Hbiv <- do.call(bw.fun.biv,list(x,y,bdiag));
+
+    S[lag.max+1] <- Srho.func(x,y,h1,h2,Hbiv,method,tol,...)
 
     for(k in 1:lag.max) {
-        x1  <- x[1:(n-k)];
-        y1  <- y[(k+1):n];
-        h    <- do.call(bw.fun.biv,list(x1,y1));
-        h1.biv <- h[1]
-        h2.biv <- h[2]
+        x1     <- x[1:(n-k)];
+        y1     <- y[(k+1):n];
+        Hbiv   <- do.call(bw.fun.biv,list(x1,y1,bdiag));
+        S[lag.max+1+k] <- Srho.func(x1,y1,h1,h2,Hbiv,method,tol,...)
+#
+        x1     <- x[(k+1):n];
+        y1     <- y[1:(n-k)];
+        Hbiv   <- do.call(bw.fun.biv,list(x1,y1,bdiag));
 
-        Srho[lag.max+1+k] <- Srho.func(x1,y1,h1,h2,h1.biv,h2.biv,method,maxpts,tol)
-
-        x1  <- x[(k+1):n];
-        y1  <- y[1:(n-k)];
-        h    <- do.call(bw.fun.biv,list(x1,y1));
-        h1.biv <- h[1]
-        h2.biv <- h[2]
-        Srho[lag.max+1-k] <- Srho.func(x1,y1,h1,h2,h1.biv,h2.biv,method,maxpts,tol)
+        S[lag.max+1-k] <- Srho.func(x1,y1,h1,h2,Hbiv,method,tol,...)
     }
     out <- new("Srho.ts")
-    out@.Data      <-  Srho
+    out@.Data      <-  S
     out@lags       <- -lag.max:lag.max
     out@stationary <- FALSE
     out@data.type  <- "continuous"
@@ -254,7 +257,7 @@ maxpts=0, tol=1e-03){
 # the metrics defined above.
 
 # Kullback-Leibler cross-validation for kernel density estimation,
-# second order Gaussian kernel (`likelihood cross-validation')
+# second order Gaussian kernel (likelihood cross-validation)
 
 mlcv.uni <- function(x) {
     DMACH <- rep(0,4)
@@ -265,15 +268,14 @@ mlcv.uni <- function(x) {
     x <- x
     n <- length(x)
     kdenest.mlcv <- function(h) {
-       kdenest.mlcv <- .Fortran("kdenestmlcv",as.double(x),as.integer(length(x)),as.double(h),F=double(1),as.double(DMACH));
+       kdenest.mlcv <- .Fortran("kdenestmlcv",as.double(x),as.integer(length(x)),as.double(h),F=double(1),as.double(DMACH),PACKAGE='tseriesEntropy');
        return(kdenest.mlcv$F);
     }
     return(nlm(kdenest.mlcv, 1.06*(min(sd(x),IQR(x)/1.34))*n^{-1/5})$estimate)
-    #return(optimize(kdenest.mlcv, c(0, range(x)),tol=0.00001)$minimum)
 }
 ## **************************************************************************************************
 
-mlcv.biv <- function(x,y) {
+mlcv.biv <- function(x,y,bdiag) {
     DMACH <- rep(0,4)
     DMACH[1]<-.Machine$double.eps
     DMACH[2]<-.Machine$double.neg.eps
@@ -283,27 +285,35 @@ mlcv.biv <- function(x,y) {
     y <- y
     n <- length(x);
     kdenest.mlcv <- function(h) {
-        kdenest.mlcv <- .Fortran("kdenestmlcvb",as.double(x),as.double(y),as.integer(length(x)),as.double(h),F=double(1),as.double(DMACH));
+        kdenest.mlcv <- .Fortran("kdenestmlcvb",as.double(x),as.double(y),as.integer(length(x)),as.double(h),F=double(1),as.double(DMACH),PACKAGE='tseriesEntropy');
         return(kdenest.mlcv$F);
     }
-     return(nlm(kdenest.mlcv, c(1.06*(min(sd(x),IQR(x)/1.34))*n^{-1/6},1.06*sd(y)*n^{-1/6}))$estimate)
-    #return(optimize(kdenest.mlcv, c(0, 1),tol=0.000001))
+    res <- nlm(kdenest.mlcv, c(1.06*(min(sd(x),IQR(x)/1.34))*n^{-1/6},1.06*sd(y)*n^{-1/6}))$estimate
+    return(diag(res))
 }
 ## **************************************************************************************************
 scv.uni <- function(x){
     return(hscv(x))
 }
 ## **************************************************************************************************
-scv.biv <- function(x,y){
-    return(diag(Hscv.diag(cbind(c(x),c(y)),pilot="samse")))
+scv.biv <- function(x,y,bdiag){
+    if(bdiag){
+        return(Hscv.diag(cbind(c(x),c(y)),pilot="samse"))
+    }else{
+        return(Hscv(cbind(c(x),c(y)),pilot="samse"))
+    }
 }
 ## **************************************************************************************************
 pi.uni <- function(x){
     return(hpi(x))
 }
 ## **************************************************************************************************
-pi.biv <- function(x,y){
-    return(diag(Hpi.diag(cbind(c(x),c(y)),pilot="samse")))
+pi.biv <- function(x,y,bdiag){
+    if(bdiag){
+        return(Hpi.diag(cbind(c(x),c(y)),pilot="samse"))
+    }else{
+        return(Hpi(cbind(c(x),c(y)),pilot="samse"))
+    }
 }
 ## **************************************************************************************************
 lscv.uni <- function(x){
@@ -311,8 +321,12 @@ lscv.uni <- function(x){
 }
 ## **************************************************************************************************
 
-lscv.biv <- function(x,y){
-    return(diag(Hlscv.diag(cbind(x,y))))
+lscv.biv <- function(x,y,bdiag){
+    if(bdiag){
+        return(Hlscv.diag(cbind(c(x),c(y))))
+    }else{
+        return(Hlscv(cbind(c(x),c(y))))
+    }
 }
 ## **************************************************************************************************
 
@@ -322,16 +336,16 @@ reference.uni <- function(x){
 }
 ## **************************************************************************************************
 
-reference.biv <- function(x,y){
+reference.biv <- function(x,y,bdiag){
 #        h1.biv <- 1.06*(min(sd(x),IQR(x)/1.34))*length(x)^{-1/6}
 #        h2.biv <- 1.06*sd(y)*length(y)^{-1/6}
     h1 <- 1.06*sd(x)*length(x)^{-1/6}
     h2 <- 1.06*sd(y)*length(y)^{-1/6}
-    return(c(h1,h2))
+    return(diag(c(h1,h2)))
 }
 ## **************************************************************************************************
 
-surrogate.SA <- function(x,nlag=trunc(length(x)/4),nsurr,Te=0.0015,RT=0.9,eps.SA=0.01,nsuccmax=30,nmax=300,che=100000){
+surrogate.SA <- function(x,nlag=trunc(length(x)/4),nsurr,Te=0.0015,RT=0.9,eps.SA=0.05,nsuccmax=30,nmax=300,che=100000){
 
     ## Wrapper for the F90 routine SURROGATEACF
     ## Given a time series in input x computes nsurr surrogates through Simulated Annealing
@@ -351,7 +365,7 @@ surrogate.SA <- function(x,nlag=trunc(length(x)/4),nsurr,Te=0.0015,RT=0.9,eps.SA
     ##   A matrix with N rows and nsurr columns, in each column is stored a surrogate
     surrogate.acf <- matrix(0,N,nsurr);
     surr <- .Fortran("surrogateacf",as.double(x),as.integer(N),as.integer(nlag),as.double(Te),as.double(RT),as.double(eps.SA),
-            as.integer(nsuccmax),as.integer(nmax),as.integer(nsurr),as.integer(che),surrogate.acf);
+            as.integer(nsuccmax),as.integer(nmax),as.integer(nsurr),as.integer(che),surrogate.acf, PACKAGE='tseriesEntropy');
     surrogate.acf <- surr[[11]];
     return(list(surr=surrogate.acf,call=match.call()));
 }
@@ -359,8 +373,8 @@ surrogate.SA <- function(x,nlag=trunc(length(x)/4),nsurr,Te=0.0015,RT=0.9,eps.SA
 ## **************************************************************************************************
 
 Srho.test.SA <- function(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
-bw = c("reference", "mlcv", "lscv", "scv", "pi"), method =c("integral","summation"), maxpts=0, tol=1e-03,
-nlag=trunc(length(x)/4),Te=0.0015,RT=0.9,eps.SA=0.01,nsuccmax=30,nmax=300,che=100000)
+bw = c("reference", "mlcv", "lscv", "scv", "pi"), bdiag=TRUE, method =c("integral","summation"), tol=1e-03,
+nlag=trunc(length(x)/4),Te=0.0015,RT=0.9,eps.SA=0.05,nsuccmax=30,nmax=300,che=100000,...)
 {
     if(any(quant<=0|quant>=1)) stop("elements of quant must lie in ]0,1[");
     if(length(quant)==1){
@@ -373,11 +387,9 @@ nlag=trunc(length(x)/4),Te=0.0015,RT=0.9,eps.SA=0.01,nsuccmax=30,nmax=300,che=10
     bw     <- match.arg(bw)
     method <- match.arg(method)
     if (missing(y)){
-        S.x    <- Srho.ts(x,lag.max=lag.max,bw=bw,method=method, plot=FALSE,
-                                maxpts=maxpts, tol=tol)@.Data
+        S.x    <- Srho.ts(x,lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, plot=FALSE, tol=tol,...)@.Data
         x.surr <- surrogate.SA(x=x,nlag=nlag,nsurr = (B+5),Te=Te,RT=RT,eps.SA=eps.SA,nsuccmax=nsuccmax,nmax=nmax,che=che)
-        M      <-  safe.Srho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max,
-                                bw=bw,method=method,maxpts=maxpts,tol=tol);
+        M      <-  safe.Srho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max,bw=bw,bdiag=bdiag,method=method,tol=tol,...);
         M.95   <- apply(M,1,quantile,probs=c(quant[1]));
         M.99   <- apply(M,1,quantile,probs=c(quant[2]));
         names(S.x) <- 1:lag.max
@@ -412,7 +424,7 @@ nlag=trunc(length(x)/4),Te=0.0015,RT=0.9,eps.SA=0.01,nsuccmax=30,nmax=300,che=10
 
 ## **************************************************************************************************
 
-surrogate.AR <- function(x, order.max=10, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"), nsurr){
+surrogate.AR <- function(x, order.max=NULL, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"), nsurr){
     fit.method <- match.arg(fit.method)
     n         <- length(x);
     x.ar      <- ar(x,method=fit.method,order.max = order.max, na.action=na.exclude);
@@ -431,7 +443,7 @@ surrogate.AR <- function(x, order.max=10, fit.method=c("yule-walker", "burg", "o
 }
 ## **************************************************************************************************
 
-surrogate.ARs <- function(x, order.max=10, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"), nsurr){
+surrogate.ARs <- function(x, order.max=NULL, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"), nsurr){
     ## SMOOTHED SIEVE BOOTSRAP
     fit.method <- match.arg(fit.method)
     n          <- length(x);
@@ -453,8 +465,8 @@ surrogate.ARs <- function(x, order.max=10, fit.method=c("yule-walker", "burg", "
 ## **************************************************************************************************
 
 Srho.test.AR <- function(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
-bw = c("reference", "mlcv", "lscv", "scv", "pi"), method =c("integral","summation"), maxpts=0, tol=1e-03,
-order.max=10, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),smoothed=TRUE)
+bw = c("reference", "mlcv", "lscv", "scv", "pi"), bdiag=TRUE, method =c("integral","summation"), tol=1e-03,
+order.max=NULL, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),smoothed=TRUE,...)
 {
     if(any(quant<=0|quant>=1)) stop("elements of quant must lie in ]0,1[");
     if(length(quant)==1){
@@ -470,12 +482,10 @@ order.max=10, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),smoothed=T
     arg.s      <- list(x=x,order.max=order.max,fit.method=fit.method,nsurr = (B+5))
     fun        <- switch(smoothed+1,"surrogate.AR","surrogate.ARs")
     if (missing(y)){
-        S.x    <- Srho.ts(x,lag.max=lag.max,bw=bw,method=method, plot=FALSE,
-                                maxpts=maxpts, tol=tol)@.Data
+        S.x    <- Srho.ts(x,lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, plot=FALSE, tol=tol,...)@.Data
 #        x.surr <- surrogate.AR(x=x,order.max=order.max,fit.method=fit.method,nsurr = (B+5))
         x.surr <-  do.call(eval(fun),args=arg.s)
-        M      <-  safe.Srho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max,
-                                bw=bw,method=method,maxpts=maxpts,tol=tol);
+        M      <-  safe.Srho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max,bw=bw,bdiag=bdiag,method=method,tol=tol,...);
         M.95   <- apply(M,1,quantile,probs=c(quant[1]));
         M.99   <- apply(M,1,quantile,probs=c(quant[2]));
         names(S.x) <- 1:lag.max
@@ -509,7 +519,7 @@ order.max=10, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),smoothed=T
 }
 ## **************************************************************************************************
 
-    safe.Srho <- function(x.surr,y.surr,B.good,lag.max,writeout=200,bw,method,maxpts,tol){
+    safe.Srho <- function(x.surr,y.surr,B.good,lag.max,writeout=200,bw,bdiag,method,tol,...){
 
         ## Function to protect against crashes in computing Srho.ts on surrogates or bootstrap replicates
 
@@ -537,7 +547,7 @@ order.max=10, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),smoothed=T
         j <- 1;
        # cat("\r Replication number  1");
         while(k <= B.good){
-            result <- try(Srho.ts(x=x.surr[,j],y=y.surr[,j],lag.max=lag.max,bw=bw,method=method,plot=FALSE,maxpts=maxpts,tol=tol)@.Data,TRUE)
+            result <- try(Srho.ts(x=x.surr[,j],y=y.surr[,j],lag.max=lag.max,bw=bw,bdiag=bdiag,method=method,plot=FALSE,tol=tol,...)@.Data,TRUE)
             cond <- (class(result)=="try-error"|any(is.na(result))|any(is.nan(result)))
             if(cond){
                 cat("\r ***************************************");
@@ -557,8 +567,8 @@ order.max=10, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),smoothed=T
 ## **************************************************************************************************
 
 Srho.test.ts <- function(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
-bw = c("reference", "mlcv", "lscv", "scv", "pi"), method =c("integral","summation"), maxpts=0, tol=1e-03,
-ci.type = c("mbb","perm"))
+bw = c("reference", "mlcv", "lscv", "scv", "pi"), bdiag=TRUE, method =c("integral","summation"), tol=1e-03,
+ci.type = c("mbb","perm"),...)
 {
     if(any(quant<=0|quant>=1)) stop("elements of quant must lie in ]0,1[");
     if(length(quant)==1){
@@ -577,17 +587,19 @@ ci.type = c("mbb","perm"))
         lag.names <- 1:lag.max
         ci.type <- "perm"
     }else{
+      if(!exists('blag')){
+        blag <- lag.max
+      }
         X <- ts.intersect(as.ts(x), as.ts(y)) # time alignment
         x <- X[,1]
         y <- X[,2]
-        y.surr  <- switch(ci.type,"mbb"=mbboot(x=y,B=B+5,l=lag.max),"perm"=boot.perm(x=y, B=B+5))
+        y.surr  <- switch(ci.type,"mbb"=mbboot(x=y,B=B+5,l=blag),"perm"=boot.perm(x=y, B=B+5))
         lag.names <- -lag.max:lag.max
     }
-    x.surr <- switch(ci.type,"mbb"=mbboot(x=x,B=B+5,l=lag.max),"perm"=boot.perm(x=x, B=B+5))
-    S.x    <- Srho.ts(x=x,y=y,lag.max=lag.max,bw=bw,method=method, plot=FALSE,
-                maxpts=maxpts, tol=tol)@.Data
+    x.surr <- switch(ci.type,"mbb"=mbboot(x=x,B=B+5,l=blag),"perm"=boot.perm(x=x, B=B+5))
+    S.x    <- Srho.ts(x=x,y=y,lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, plot=FALSE,tol=tol,...)@.Data
     M      <-  safe.Srho(x.surr=x.surr$surr,y.surr=y.surr$surr,B.good=B,lag.max=lag.max,
-                bw=bw,method=method,maxpts=maxpts,tol=tol);
+                        bw=bw,bdiag=bdiag,method=method,tol=tol,...);
     M.95   <- apply(M,1,quantile,probs=c(quant[1]));
     M.99   <- apply(M,1,quantile,probs=c(quant[2]));
     names(S.x) <- lag.names
@@ -644,7 +656,7 @@ mbboot <- function(x, B, l){
 }
 ## **************************************************************************************************
 
-    safe.Trho <- function(x.surr,y.surr,B.good,lag.max,writeout=200,bw,method,maxpts,tol){
+    safe.Trho <- function(x.surr,y.surr,B.good,lag.max,writeout=200,bw,bdiag,method,tol,...){
 
         ## Function to protect against crashes in computing Trho on surrogates or bootstrap replicates
 
@@ -672,7 +684,7 @@ mbboot <- function(x, B, l){
         j <- 1;
        # cat("\r Replication number  1");
         while(k <= B.good){
-            result <- try((Srho.ts(x=x.surr[,j],y=y.surr[,j],lag.max=lag.max,bw=bw,method=method,plot=FALSE,maxpts=maxpts,tol=tol)@.Data-
+            result <- try((Srho.ts(x=x.surr[,j],y=y.surr[,j],lag.max=lag.max,bw=bw,bdiag=bdiag,method=method,plot=FALSE,tol=tol,...)@.Data-
              Srho.cor(x=x.surr[,j],lag.max=lag.max,plot=FALSE)@.Data)^2,TRUE)
             cond <- (class(result)=="try-error"|any(is.na(result))|any(is.nan(result)))
             if(cond){
@@ -693,8 +705,8 @@ mbboot <- function(x, B, l){
 ## **************************************************************************************************
 
 Trho.test.AR <- function(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
-bw = c("reference", "mlcv", "lscv", "scv", "pi"), method =c("integral","summation"), maxpts=0, tol=1e-03,
-order.max=10, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),smoothed=TRUE)
+bw = c("reference", "mlcv", "lscv", "scv", "pi"), bdiag=TRUE, method =c("integral","summation"), tol=1e-03,
+order.max=NULL, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),smoothed=TRUE,...)
 {
     if(any(quant<=0|quant>=1)) stop("elements of quant must lie in ]0,1[");
     if(length(quant)==1){
@@ -710,12 +722,12 @@ order.max=10, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),smoothed=T
     arg.s      <- list(x=x,order.max=order.max,fit.method=fit.method,nsurr = (B+5))
     fun        <- switch(smoothed+1,"surrogate.AR","surrogate.ARs")
     if (missing(y)){
-        S.x    <- (Srho.ts(x,lag.max=lag.max,bw=bw,method=method, plot=FALSE,
-                                maxpts=maxpts, tol=tol)@.Data - Srho.cor(x,lag.max=lag.max,plot=FALSE)@.Data)^2
+        S.x    <- (Srho.ts(x,lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, plot=FALSE,
+                                tol=tol,...)@.Data - Srho.cor(x,lag.max=lag.max,plot=FALSE)@.Data)^2
         x.surr <-  do.call(eval(fun),args=arg.s)
 #        x.surr <- surrogate.AR(x=x,order.max=order.max,fit.method=fit.method,nsurr = (B+5))
 
-        M      <-  safe.Trho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max, bw=bw,method=method,maxpts=maxpts,tol=tol);
+        M      <-  safe.Trho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max, bw=bw,bdiag=bdiag,method=method,tol=tol,...);
         M.95   <- apply(M,1,quantile,probs=c(quant[1]));
         M.99   <- apply(M,1,quantile,probs=c(quant[2]));
         names(S.x) <- 1:lag.max
@@ -750,8 +762,8 @@ order.max=10, fit.method=c("yule-walker", "burg", "ols", "mle", "yw"),smoothed=T
 ## **************************************************************************************************
 
 Trho.test.SA <- function(x, y, lag.max = 10,  B = 100, plot = TRUE, quant = c(0.95, 0.99),
-bw = c("reference", "mlcv", "lscv", "scv", "pi"), method =c("integral","summation"), maxpts=0, tol=1e-03,
-nlag=trunc(length(x)/4),Te=0.0015,RT=0.9,eps.SA=0.01,nsuccmax=30,nmax=300,che=100000)
+bw = c("reference", "mlcv", "lscv", "scv", "pi"), bdiag=TRUE, method =c("integral","summation"), tol=1e-03,
+nlag=trunc(length(x)/4),Te=0.0015,RT=0.9,eps.SA=0.05,nsuccmax=30,nmax=300,che=100000,...)
 {
     if(any(quant<=0|quant>=1)) stop("elements of quant must lie in ]0,1[");
     if(length(quant)==1){
@@ -764,15 +776,10 @@ nlag=trunc(length(x)/4),Te=0.0015,RT=0.9,eps.SA=0.01,nsuccmax=30,nmax=300,che=10
     bw         <- match.arg(bw)
     method     <- match.arg(method)
     if (missing(y)){
-        S.x    <- (Srho.ts(x,lag.max=lag.max,bw=bw,method=method, plot=FALSE,
-                                maxpts=maxpts, tol=tol)@.Data - Srho.cor(x,lag.max=lag.max,plot=FALSE)@.Data)^2
+        S.x    <- (Srho.ts(x,lag.max=lag.max,bw=bw,bdiag=bdiag,method=method, plot=FALSE,
+                                tol=tol,...)@.Data - Srho.cor(x,lag.max=lag.max,plot=FALSE)@.Data)^2
         x.surr <- surrogate.SA(x=x,nlag=nlag,nsurr = (B+5),Te=Te,RT=RT,eps.SA=eps.SA,nsuccmax=nsuccmax,nmax=nmax,che=che)
-        M      <-  safe.Trho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max, bw=bw,method=method,maxpts=maxpts,tol=tol);
-#        M <- matrix(0,nrow=lag.max,ncol=B)
-#        for(i in 1:B){
-#            M[,i] <- (Srho.ts(x.surr$surr[,i],lag.max=lag.max,bw=bw,method=method, plot=FALSE,
-#                                maxpts=maxpts, tol=tol)@.Data - Srho.cor(x.surr$surr[,i],lag.max=lag.max,plot=FALSE)@.Data)^2
-#        }
+        M      <-  safe.Trho(x.surr=x.surr$surr,B.good=B,lag.max=lag.max, bw=bw,bdiag=bdiag,method=method,tol=tol,...);
         M.95  <- apply(M,1,quantile,probs=c(quant[1]));
         M.99  <- apply(M,1,quantile,probs=c(quant[2]));
         names(S.x) <- 1:lag.max

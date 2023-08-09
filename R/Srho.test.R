@@ -34,7 +34,7 @@
 ## ***************************************************************************************************
  setMethod("plot" , signature(x = "Srho.test",y = "missing"),
      function(x, y, type = "s", xlab = "lag", ylab = "S", ylim= c(0,max(max(x@.Data),max(x@quantiles[,1]),
-     max(x@quantiles[,2]))), main = NULL, col=1, mai=c(.85,.75,.1,.1), lwd=1.5, lty.l=c(2,2), col.l=c(3,4), grid=TRUE, ...){
+     max(x@quantiles[,2]))), col=1, mai=c(.85,.85,.1,.1), lwd=2, lty.l=c(2,2), col.l=c(3,4), grid=TRUE, ...){
             par(mai= mai);
             plot(x@lags,x@.Data,type=type,col=col,xlab=xlab,ylab=ylab,ylim=ylim,lwd=lwd,...);
             abline(h=0,lty=2,col=1);
@@ -51,25 +51,25 @@
     n <- length(out);
     lag.min <- object@lags[1]
     lag.max <- object@lags[n]
-    cat (" -------------------------------------------------------------------------- \n")
+    cat ("-------------------------------------------------------------------------- \n")
     cat (" Srho test for", object@test.type, "on lags", lag.min, "to", lag.max, "\n")
-    cat (" -------------------------------------------------------------------------- \n")
+    cat ("-------------------------------------------------------------------------- \n")
     cat (" Call: \n")
     print(object@call);
-    cat (" -------------------------------------------------------------------------- \n")
+    cat ("-------------------------------------------------------------------------- \n")
     cat (" Stationary version      :" , object@stationary , "\n")
     cat (" Significant.lags:", "\n")
     print(object@significant.lags)
-    cat (" -------------------------------------------------------------------------- \n")
+    cat ("-------------------------------------------------------------------------- \n")
     cat (" p-values:", "\n")
     print(object@p.value)
-    cat (" -------------------------------------------------------------------------- \n")
+    cat ("-------------------------------------------------------------------------- \n")
     }
 )
 
 ## ***************************************************************************************************
 
-Srho.test <- function(x,y,lag.max,B=1000,stationary=TRUE,plot=TRUE,quant=c(0.95,0.99),nor=FALSE){
+Srho.test <- function(x,y,lag.max=10,B=1000,stationary=TRUE,plot=TRUE,quant=c(0.95,0.99),nor=FALSE){
 
     n <- length(x);
     if(!(is.integer(x)||is.factor(x))) stop('input series must be either integer or categorical valued')
@@ -85,10 +85,16 @@ Srho.test <- function(x,y,lag.max,B=1000,stationary=TRUE,plot=TRUE,quant=c(0.95,
         }
     }
     if (missing(y)){
-        return(Srho.test.uni(x,lag.max=lag.max,B=B,stationary=stationary,plot=plot,quant=quant,nor=nor))
+        out <- Srho.test.uni(x,lag.max=lag.max,B=B,stationary=stationary,plot=plot,quant=quant,nor=nor)
     } else {
-        return(Srho.test.biv(x,y,lag.max=lag.max,B=B,stationary=stationary,plot=plot,quant=quant,nor=nor))
+        out <- Srho.test.biv(x,y,lag.max=lag.max,B=B,stationary=stationary,plot=plot,quant=quant,nor=nor)
     }
+    out@call <- match.call();
+    if (plot) {
+        plot(out)
+        return(invisible(out))
+    }
+    else return(out)
 }
 
 
@@ -108,7 +114,7 @@ Srho.test.uni <- function(x,lag.max,B=1000,stationary=TRUE,plot=TRUE,quant,nor=F
     n     <- length(x);
     M     <- matrix(0,lag.max,B);
     S.b   <- .Fortran("ssunib",as.integer(x),as.integer(n),as.integer(lag.max),B=as.integer(B), S=as.double(rep(0,lag.max)),
-    M=matrix(as.double(0),lag.max,B),as.integer(stationary),as.integer(nor))
+    M=matrix(as.double(0),lag.max,B),as.integer(stationary),as.integer(nor),PACKAGE='tseriesEntropy')
 
     S.x   <- S.b$S;
     M     <- S.b$M;
@@ -132,11 +138,7 @@ Srho.test.uni <- function(x,lag.max,B=1000,stationary=TRUE,plot=TRUE,quant,nor=F
     out@p.value                 <- rowMeans(M >= S.x) # bootstrap p-value
     names(out@p.value)          <- 1:lag.max
     if(nor){out@notes <- "normalized"}
-    if (plot) {
-        plot(out)
-        return(invisible(out))
-    }
-    else return(out)
+    return(out)
 }
 
 ## ***************************************************************************************************
@@ -168,7 +170,7 @@ Srho.test.biv <- function(x,y,lag.max,B=1000,stationary=TRUE,plot=TRUE,quant,nor
 
     M   <- matrix(0,(2*lag.max+1),B);storage.mode(M)<-"double"
     S.b <- .Fortran("ssbivb",as.integer(x),as.integer(y),as.integer(n),as.integer(lag.max),B=as.integer(B),
-        S=double((2*lag.max+1)),M=M,as.integer(stationary),as.integer(nor));
+        S=double((2*lag.max+1)),M=M,as.integer(stationary),as.integer(nor),PACKAGE='tseriesEntropy');
     #SUBROUTINE SSBIVB(X,Y,N,nlag,B,S,M,STAT,nor)
     S.x   <- S.b$S;
     M     <- S.b$M;
@@ -183,6 +185,7 @@ Srho.test.biv <- function(x,y,lag.max,B=1000,stationary=TRUE,plot=TRUE,quant,nor
     out@stationary <- stationary
     out@data.type  <- "integer-categorical"
     out@test.type  <- "cross dependence"
+    out@call       <- match.call();
     out@quantiles  <- cbind(M.95,M.99)
     q.names        <- paste("Q",as.character((quant*100)),"%",sep='')
     colnames(out@quantiles)     <- q.names
@@ -192,11 +195,7 @@ Srho.test.biv <- function(x,y,lag.max,B=1000,stationary=TRUE,plot=TRUE,quant,nor
     out@p.value                 <- rowMeans(M >= S.x) # bootstrap p-value
     names(out@p.value)          <- -lag.max:lag.max
     if(nor){out@notes <- "normalized"}
-    if (plot) {
-        plot(out)
-        return(invisible(out))
-    }
-    else return(out)
+    return(out)
 }
 
  ## ***************************************************************************************************
